@@ -5,3 +5,5 @@ ValueTask
 почему нельзя async внутри lock
 почему в lock обязательно объект синхронизации на не value type
 Span и stackalloc
+
+продолжим Обобщения

@@ -1,7 +1,7 @@
-
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using WebApiExample.Services;
+
+namespace WebApiExample.Controllers;
 
 [ApiController]
 [Route("[controller]")]

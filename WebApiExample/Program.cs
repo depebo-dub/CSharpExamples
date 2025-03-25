@@ -7,6 +7,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITaskExampleService, TaskExampleService>();
+
 
 var app = builder.Build();
 

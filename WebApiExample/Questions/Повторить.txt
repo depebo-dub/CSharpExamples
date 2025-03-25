@@ -1,0 +1,7 @@
+ValueTask
+Отличия new override
+Зачем абстрактный класс если есть интерфейс
+Аллокация массива struct
+почему нельзя async внутри lock
+почему в lock обязательно объект синхронизации на не value type
+Span и stackalloc

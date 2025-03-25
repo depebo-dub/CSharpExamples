@@ -5,11 +5,12 @@ namespace WebApiExample.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class OopExampleController (ITaskExampleService taskExampleService) : ControllerBase
+public class OopExampleController (IOopExampleService oopExampleService) : ControllerBase
 {
     [HttpGet]
-    public async Task<string> GetValueFromCacheAsync(int id)
+    public string OverrideDemo()
     {
-        return await taskExampleService.GetValueWithValueTaskFromCacheAsync(id);
+         oopExampleService.DifferenceOverrideAndNewDemo();
+         return "This method only for debugging OverrideDemo method";
     }
 }

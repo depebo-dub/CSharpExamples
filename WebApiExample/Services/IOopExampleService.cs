@@ -2,6 +2,6 @@ namespace WebApiExample.Services;
 
 public interface IOopExampleService
 {
-    void OverrideDemo();
+    void DifferenceOverrideAndNewDemo();
 
 }

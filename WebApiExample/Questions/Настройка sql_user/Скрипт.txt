@@ -1,0 +1,128 @@
+-- =============================================
+-- Шаг 1: Проверка и создание логина на сервере
+-- =============================================
+DECLARE @LoginName NVARCHAR(128) = 'rom_sql_user';
+DECLARE @Password NVARCHAR(128) = 'pass';
+DECLARE @DatabaseName NVARCHAR(128) = 'MyDb';
+DECLARE @DefaultSchema NVARCHAR(128) = 'dbo';
+
+BEGIN TRY
+    -- Проверяем, существует ли логин
+    IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LoginName)
+    BEGIN
+        -- Создаем SQL-логин
+        DECLARE @CreateLoginSQL NVARCHAR(MAX) = 
+            'CREATE LOGIN [' + @LoginName + '] WITH PASSWORD = ''' + @Password + ''', 
+            DEFAULT_DATABASE = [' + @DatabaseName + '], 
+            CHECK_EXPIRATION = OFF, 
+            CHECK_POLICY = OFF';
+        
+        EXEC sp_executesql @CreateLoginSQL;
+        PRINT 'Логин [' + @LoginName + '] успешно создан на сервере';
+    END
+    ELSE
+    BEGIN
+        PRINT 'Логин [' + @LoginName + '] уже существует на сервере';
+        
+        -- Обновляем пароль, если логин уже существует
+        DECLARE @AlterLoginSQL NVARCHAR(MAX) = 
+            'ALTER LOGIN [' + @LoginName + '] WITH PASSWORD = ''' + @Password + ''', 
+            CHECK_EXPIRATION = OFF, 
+            CHECK_POLICY = OFF';
+        
+        EXEC sp_executesql @AlterLoginSQL;
+        PRINT 'Пароль для логина [' + @LoginName + '] обновлен';
+    END
+
+    -- =============================================
+    -- Шаг 2: Проверка и создание пользователя в БД
+    -- =============================================
+    
+    -- Проверяем существование БД
+    IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = @DatabaseName)
+    BEGIN
+        RAISERROR('База данных [%s] не существует!', 16, 1, @DatabaseName);
+        RETURN;
+    END
+    
+    -- Динамический SQL для работы с конкретной БД
+    DECLARE @CreateUserSQL NVARCHAR(MAX) = '
+    USE [' + @DatabaseName + '];
+    
+    -- Проверяем существование пользователя
+    IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = ''' + @LoginName + ''')
+    BEGIN
+        CREATE USER [' + @LoginName + '] FOR LOGIN [' + @LoginName + '] 
+        WITH DEFAULT_SCHEMA = [' + @DefaultSchema + '];
+        
+        PRINT ''Пользователь [' + @LoginName + '] создан в БД [' + @DatabaseName + ']'';
+    END
+    ELSE
+    BEGIN
+        PRINT ''Пользователь [' + @LoginName + '] уже существует в БД [' + @DatabaseName + ']'';
+    END
+    
+    -- Назначаем роль db_owner
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM sys.database_role_members drm
+        JOIN sys.database_principals r ON drm.role_principal_id = r.principal_id
+        JOIN sys.database_principals m ON drm.member_principal_id = m.principal_id
+        WHERE r.name = ''db_owner'' AND m.name = ''' + @LoginName + '''
+    )
+    BEGIN
+        ALTER ROLE [db_owner] ADD MEMBER [' + @LoginName + '];
+        PRINT ''Пользователю [' + @LoginName + '] назначена роль db_owner в БД [' + @DatabaseName + ']'';
+    END
+    ELSE
+    BEGIN
+        PRINT ''Пользователь [' + @LoginName + '] уже имеет роль db_owner в БД [' + @DatabaseName + ']'';
+    END';
+    
+    EXEC sp_executesql @CreateUserSQL;
+    
+    -- =============================================
+    -- Шаг 3: Дополнительные разрешения
+    -- =============================================
+    DECLARE @GrantPermissionsSQL NVARCHAR(MAX) = '
+    USE [' + @DatabaseName + '];
+    
+    -- Разрешение на подключение к серверу (если еще не дано)
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM sys.server_permissions p
+        JOIN sys.server_principals l ON p.grantee_principal_id = l.principal_id
+        WHERE l.name = ''' + @LoginName + ''' AND p.permission_name = ''CONNECT SQL''
+    )
+    BEGIN
+        GRANT CONNECT SQL TO [' + @LoginName + '];
+        PRINT ''Пользователю [' + @LoginName + '] предоставлено право CONNECT SQL'';
+    END';
+    
+    EXEC sp_executesql @GrantPermissionsSQL;
+    
+    PRINT 'Настройка пользователя [' + @LoginName + '] завершена успешно';
+END TRY
+BEGIN CATCH
+    PRINT 'Ошибка: ' + ERROR_MESSAGE();
+    PRINT 'Произошла ошибка при настройке пользователя';
+END CATCH
+
+
+SELECT name, type_desc, is_disabled 
+FROM sys.server_principals 
+WHERE name = 'rom_sql_user';
+
+USE [master];
+GO
+EXEC xp_instance_regwrite 
+  N'HKEY_LOCAL_MACHINE', 
+  N'Software\Microsoft\MSSQLServer\MSSQLServer',
+  N'LoginMode', 
+  N'REG_DWORD', 
+  2; -- 2 = Mixed Mode (SQL and Windows)
+GO
+
+-- =============================================
+-- Шаг 4: Перезапуск сервера
+-- =============================================

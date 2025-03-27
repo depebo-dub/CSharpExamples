@@ -126,3 +126,6 @@ GO
 -- =============================================
 -- Шаг 4: Перезапуск сервера
 -- =============================================
+
+----проверка подключения
+Invoke-Sqlcmd -ServerInstance "DESKTOP-UD0CFLC" -Database "MyDb" -Username "rom_sql_user" -Password "pass" -Query "SELECT @@VERSION AS SQLVersion" -TrustServerCertificate

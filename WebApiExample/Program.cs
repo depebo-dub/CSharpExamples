@@ -21,6 +21,7 @@ var app = builder.Build();
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
+/*
 try 
 {
     logger.LogInformation("Пытаюсь подключиться к БД...");
@@ -41,6 +42,7 @@ catch (Exception ex)
     logger.LogError(ex, "❌ Ошибка подключения к БД");
     // Здесь можно добавить дополнительные действия
 }
+*///Проверка коннекта к БД
 
 // Настраиваем Swagger для разработки
 if (app.Environment.IsDevelopment())
